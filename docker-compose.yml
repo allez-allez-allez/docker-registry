@@ -1,0 +1,35 @@
+version: "3.3"
+
+services:
+  registry:
+    container_name: registry
+    restart: always
+    image: registry:latest
+    volumes:
+      - ./config.yml:/etc/docker/registry/config.yml:ro
+      - registry-data:/var/lib/registry:rw
+      - ./auth:/auth
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.registry.entrypoints=web
+      - traefik.http.routers.registry.rule=Host(`${HOST_URL}`)
+      - traefik.http.services.registry.loadbalancer.server.port=5000
+      - traefik.http.middlewares.registry.buffering.maxRequestBodyBytes=20000000
+      - traefik.http.middlewares.registry.headers.sslredirect=true
+      - traefik.http.middlewares.registry.headers.sslproxyheaders.X-Forwarded-Proto=https
+
+    networks:
+      - web
+    environment:
+      - STANDALONE=true
+      - REGISTRY_AUTH=htpasswd
+      - REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm
+      - REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd
+      - REGISTRY_HTTP_RELATIVEURLS=true
+volumes:
+  registry-data:
+    driver: local
+
+networks:
+  web:
+    external: true
